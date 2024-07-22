@@ -28,6 +28,13 @@
             <!-- Populate with commands -->
         </select>
 
+        <label for="color-select">Select Color:</label>
+        <select id="color-select">
+            <option value="0xFF0000">Red</option>
+            <option value="0x00FF00">Green</option>
+            <option value="0xFFFF00">Yellow</option>
+        </select>
+
         <button onclick="executeCommand()">Execute Command</button>
         <button onclick="chooseColor()">Choose Color</button>
         <button onclick="startDiscoMode()">Disco Mode</button>
@@ -50,6 +57,7 @@
         const ipSelect = document.getElementById('ip-address');
         const positionSelect = document.getElementById('position');
         const commandSelect = document.getElementById('command');
+        const colorSelect = document.getElementById('color-select');
         const logTextArea = document.getElementById('log');
 
         ipAddresses.forEach(ip => {
@@ -81,6 +89,9 @@
             .then(data => {
                 logMessage(data.message);
                 if (callback) callback();
+            })
+            .catch(error => {
+                logMessage(`Error: ${error}`);
             });
         }
 
@@ -93,11 +104,14 @@
         }
 
         function chooseColor() {
-            const color = prompt('Enter color code (e.g., #FF5733):');
-            if (color) {
-                const ipAddress = ipSelect.value;
-                const position = positionSelect.value;
-                sendRequest({ip_address: ipAddress, color: color.slice(1), position});
+            const color = colorSelect.value;
+            const ipAddress = ipSelect.value;
+            const position = positionSelect.value;
+
+            if (color && ipAddress) {
+                sendRequest({ip_address: ipAddress, color, position});
+            } else {
+                logMessage('Error: Please select both IP address and color.');
             }
         }
 
@@ -106,13 +120,14 @@
             const position = positionSelect.value;
 
             function discoCycle() {
-                const color = Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+                const color = `0x${Math.floor(Math.random() * 0xFFFFFF).toString(16).padStart(6, '0')}`;
+                console.log(`Sending color: ${color}`); // Log color
                 sendRequest({ip_address: ipAddress, color, position}, () => {
-                    setTimeout(discoCycle, 100);
+                    setTimeout(discoCycle, 100); // Adjust time to control speed of disco mode
                 });
             }
 
-            discoCycle();
+            discoCycle(); // Start the disco mode
         }
 
         function openDoor() {
