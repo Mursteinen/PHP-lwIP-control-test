@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Panel</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Control Panel</h1>
+
+        <label for="ip-address">Select IP Address:</label>
+        <select id="ip-address">
+            <!-- Populate with IP addresses -->
+        </select>
+
+        <label for="position">Select Position:</label>
+        <select id="position">
+            <option value="0">Position 0</option>
+            <option value="1">Position 1</option>
+            <option value="2">Position 2</option>
+            <option value="3">Position 3</option>
+        </select>
+
+        <label for="command">Select Command:</label>
+        <select id="command">
+            <!-- Populate with commands -->
+        </select>
+
+        <button onclick="executeCommand()">Execute Command</button>
+        <button onclick="chooseColor()">Choose Color</button>
+        <button onclick="startDiscoMode()">Disco Mode</button>
+        <button onclick="openDoor()">Open Door</button>
+
+        <textarea id="log" rows="10" cols="50" readonly></textarea>
+    </div>
+
+    <script>
+        const ipAddresses = Array.from({length: 12}, (_, i) => `172.20.0.${i + 1}`);
+        const commands = [
+            "DOOR_OPEN", "DOOR_STATUS", "ProcessOrder", "DOOR_CLOSED", "AbortOrder", "HELLO",
+            "SetupInventory", "EndSetupInventory", "RestockInventory", "EndRestockInventory",
+            "CloseDoor", "LIGHT_SET", "SetCardMode", "InitiateSetCardMode", "InitiateLockerCalibration",
+            "Calibrate", "NotifyUserToPutCalibrationWeightInLocker", "NotifyUserCalibrationIsHappening",
+            "NotifyUserCalibrationIsComplete", "WEIGHT_CALIBRATE", "WEIGHT_OFFSET", "WEIGHT_FACTOR",
+            "WEIGHT_CONFIG", "ReturnItem", "ReturnItemNeedsService", "InitateItemServicing", "OpenAllDoorsOnCard"
+        ];
+
+        const ipSelect = document.getElementById('ip-address');
+        const positionSelect = document.getElementById('position');
+        const commandSelect = document.getElementById('command');
+        const logTextArea = document.getElementById('log');
+
+        ipAddresses.forEach(ip => {
+            const option = document.createElement('option');
+            option.value = ip;
+            option.textContent = ip;
+            ipSelect.appendChild(option);
+        });
+
+        commands.forEach(command => {
+            const option = document.createElement('option');
+            option.value = command;
+            option.textContent = command;
+            commandSelect.appendChild(option);
+        });
+
+        function logMessage(message) {
+            logTextArea.value += `${message}\n`;
+            logTextArea.scrollTop = logTextArea.scrollHeight;
+        }
+
+        function sendRequest(data, callback) {
+            fetch('backend.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: new URLSearchParams(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                logMessage(data.message);
+                if (callback) callback();
+            });
+        }
+
+        function executeCommand() {
+            const ipAddress = ipSelect.value;
+            const command = commandSelect.value;
+            const position = positionSelect.value;
+
+            sendRequest({ip_address: ipAddress, command, position});
+        }
+
+        function chooseColor() {
+            const color = prompt('Enter color code (e.g., #FF5733):');
+            if (color) {
+                const ipAddress = ipSelect.value;
+                const position = positionSelect.value;
+                sendRequest({ip_address: ipAddress, color: color.slice(1), position});
+            }
+        }
+
+        function startDiscoMode() {
+            const ipAddress = ipSelect.value;
+            const position = positionSelect.value;
+
+            function discoCycle() {
+                const color = Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+                sendRequest({ip_address: ipAddress, color, position}, () => {
+                    setTimeout(discoCycle, 100);
+                });
+            }
+
+            discoCycle();
+        }
+
+        function openDoor() {
+            const ipAddress = ipSelect.value;
+            const position = positionSelect.value;
+            sendRequest({ip_address: ipAddress, command: 'DOOR_OPEN', position});
+        }
+    </script>
+</body>
+</html>
